@@ -36,8 +36,8 @@ pipeline {
                 
                 // Display Git information
                 script {
-                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-                    def gitBranch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    def gitCommit = bat(returnStdout: true, script: 'git rev-parse HEAD', label: 'Get Git Commit').trim()
+                    def gitBranch = bat(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD', label: 'Get Git Branch').trim()
                     echo "Git Branch: ${gitBranch}"
                     echo "Git Commit: ${gitCommit}"
                 }
@@ -49,10 +49,12 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Build Project'
                 echo '========================================'
-                sh '''
-                    echo "Building Spring Boot application..."
-                    mvn clean compile
-                    echo "Build completed successfully!"
+                bat '''
+                    @echo off
+                    echo Building Spring Boot application...
+                    call mvn clean compile
+                    if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                    echo Build completed successfully!
                 '''
             }
             post {
@@ -70,10 +72,12 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Run Tests'
                 echo '========================================'
-                sh '''
-                    echo "Running unit tests..."
-                    mvn test
-                    echo "Tests completed!"
+                bat '''
+                    @echo off
+                    echo Running unit tests...
+                    call mvn test
+                    if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                    echo Tests completed!
                 '''
             }
             post {
@@ -98,10 +102,12 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Package Application'
                 echo '========================================'
-                sh '''
-                    echo "Packaging Spring Boot application..."
-                    mvn package -DskipTests
-                    echo "Packaging completed!"
+                bat '''
+                    @echo off
+                    echo Packaging Spring Boot application...
+                    call mvn package -DskipTests
+                    if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+                    echo Packaging completed!
                 '''
             }
             post {
@@ -112,9 +118,7 @@ pipeline {
                     
                     // Display artifact information
                     script {
-                        // Cross-platform command to list JAR files
-                        def isUnix = isUnix()
-                        def jarFiles = sh(returnStdout: true, script: isUnix ? 'ls -la target/*.jar' : 'dir /b target\\*.jar').trim()
+                        def jarFiles = bat(returnStdout: true, script: 'dir /b target\\*.jar', label: 'List JAR files').trim()
                         echo "Generated artifacts:\n${jarFiles}"
                     }
                 }
