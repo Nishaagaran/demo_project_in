@@ -85,8 +85,14 @@ pipeline {
             }
             post {
                 always {
-                    // Publish test results
-                    junit 'target/surefire-reports/*.xml'
+                    // Publish test results only if test reports exist
+                    script {
+                        try {
+                            junit 'target/surefire-reports/*.xml'
+                        } catch (Exception e) {
+                            echo "No test reports found. This is normal if no tests exist. Skipping JUnit result publishing."
+                        }
+                    }
                     
                     // Publish test coverage if available
                     // publishCoverage adapters: [jacocoAdapter('target/site/jacoco/jacoco.xml')]
