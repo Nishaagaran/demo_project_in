@@ -1,20 +1,15 @@
+// Alternative Jenkinsfile that doesn't require Maven tool configuration
+// Use this version if Maven3 is not configured in Jenkins Global Tool Configuration
+// This version uses system Maven directly
+
 pipeline {
     agent any
-    
-    tools {
-        // Configure Maven if available in Jenkins
-        // Go to Jenkins > Manage Jenkins > Global Tool Configuration
-        // Add Maven installation and name it 'Maven3'
-        // If Maven3 is not configured, comment out this block and use system Maven
-        maven 'Maven3'
-    }
     
     environment {
         // Maven settings
         MAVEN_OPTS = '-Xmx1024m -XX:MaxPermSize=512m'
-        // Adjust JAVA_HOME based on your JDK tool name in Jenkins
-        // Or set it to your system Java path
-        // JAVA_HOME = tool 'java17'
+        // Use system Maven - ensure Maven is in PATH or provide full path
+        MAVEN_CMD = 'mvn' // Change to full path if needed, e.g., 'C:\\Program Files\\Apache\\Maven\\bin\\mvn.cmd'
     }
     
     options {
@@ -49,11 +44,11 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Build Project'
                 echo '========================================'
-                sh '''
+                sh """
                     echo "Building Spring Boot application..."
-                    mvn clean compile
+                    ${MAVEN_CMD} clean compile
                     echo "Build completed successfully!"
-                '''
+                """
             }
             post {
                 success {
@@ -70,19 +65,16 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Run Tests'
                 echo '========================================'
-                sh '''
+                sh """
                     echo "Running unit tests..."
-                    mvn test
+                    ${MAVEN_CMD} test
                     echo "Tests completed!"
-                '''
+                """
             }
             post {
                 always {
                     // Publish test results
                     junit 'target/surefire-reports/*.xml'
-                    
-                    // Publish test coverage if available
-                    // publishCoverage adapters: [jacocoAdapter('target/site/jacoco/jacoco.xml')]
                 }
                 success {
                     echo '✓ All tests passed'
@@ -98,11 +90,11 @@ pipeline {
                 echo '========================================'
                 echo 'Stage: Package Application'
                 echo '========================================'
-                sh '''
+                sh """
                     echo "Packaging Spring Boot application..."
-                    mvn package -DskipTests
+                    ${MAVEN_CMD} package -DskipTests
                     echo "Packaging completed!"
-                '''
+                """
             }
             post {
                 success {
@@ -112,7 +104,6 @@ pipeline {
                     
                     // Display artifact information
                     script {
-                        // Cross-platform command to list JAR files
                         def isUnix = isUnix()
                         def jarFiles = sh(returnStdout: true, script: isUnix ? 'ls -la target/*.jar' : 'dir /b target\\*.jar').trim()
                         echo "Generated artifacts:\n${jarFiles}"
@@ -130,26 +121,12 @@ pipeline {
             echo '========================================'
             echo 'Pipeline Execution Summary'
             echo '========================================'
-            // Clean up workspace (optional - uncomment if needed)
-            // cleanWs()
         }
         success {
             echo '✓✓✓ Pipeline succeeded! ✓✓✓'
-            // You can add notifications here (email, Slack, etc.)
-            // emailext (
-            //     subject: "Pipeline Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-            //     body: "Build succeeded. Check console output at ${env.BUILD_URL}",
-            //     to: "your-email@example.com"
-            // )
         }
         failure {
             echo '✗✗✗ Pipeline failed! ✗✗✗'
-            // You can add failure notifications here
-            // emailext (
-            //     subject: "Pipeline Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-            //     body: "Build failed. Check console output at ${env.BUILD_URL}",
-            //     to: "your-email@example.com"
-            // )
         }
         unstable {
             echo '⚠ Pipeline is unstable!'
@@ -159,3 +136,4 @@ pipeline {
         }
     }
 }
+
