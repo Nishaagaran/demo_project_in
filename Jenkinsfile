@@ -10,8 +10,8 @@ pipeline {
     }
     
     environment {
-        // Maven settings
-        MAVEN_OPTS = '-Xmx1024m -XX:MaxPermSize=512m'
+        // Maven settings (MaxPermSize removed - not supported in Java 8+)
+        MAVEN_OPTS = '-Xmx1024m'
         // Adjust JAVA_HOME based on your JDK tool name in Jenkins
         // Or set it to your system Java path
         // JAVA_HOME = tool 'java17'
@@ -36,8 +36,11 @@ pipeline {
                 
                 // Display Git information
                 script {
-                    def gitCommit = bat(returnStdout: true, script: 'git rev-parse HEAD', label: 'Get Git Commit').trim()
-                    def gitBranch = bat(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD', label: 'Get Git Branch').trim()
+                    def gitCommitOutput = bat(returnStdout: true, script: '@echo off && git rev-parse HEAD', label: 'Get Git Commit')
+                    def gitBranchOutput = bat(returnStdout: true, script: '@echo off && git rev-parse --abbrev-ref HEAD', label: 'Get Git Branch')
+                    // Extract just the hash/branch name (last non-empty line, excluding command prompt)
+                    def gitCommit = gitCommitOutput.split('\r?\n').findAll { it.trim() && !it.contains('>') && !it.contains('git rev-parse') }.last()?.trim() ?: gitCommitOutput.trim()
+                    def gitBranch = gitBranchOutput.split('\r?\n').findAll { it.trim() && !it.contains('>') && !it.contains('git rev-parse') }.last()?.trim() ?: gitBranchOutput.trim()
                     echo "Git Branch: ${gitBranch}"
                     echo "Git Commit: ${gitCommit}"
                 }
